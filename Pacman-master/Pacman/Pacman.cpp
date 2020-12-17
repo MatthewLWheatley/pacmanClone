@@ -14,12 +14,23 @@ Pacman::Pacman(int argc, char* argv[]) : Game(argc, argv), _cPacmanFrameTime(250
 
 	//pacman varibles
 	_pacman = new Player();
+	_pacman->_dead = false;
 	_pacman->_currentFrameTime = 0;
 	_pacman->_direction = 0;
 	_pacman->_frame = 0;
 	_pacman->_frameCount = 0;
 	_pacman->_speedMultiplier = 1.0f;
 	_pacman->_speed = 0.1f;
+
+	//initialise ghost character
+	for (int i = 0; i < GHOSTCOUNT; i++)
+	{
+		_ghost[i] = new MovingEnemy();
+		_ghost[i]->_direction = 0;
+		_ghost[i]->_speed = 0.2f;
+	}
+
+
 
 	//input varibles
 	_movementKeyPreseed = false;
@@ -95,7 +106,17 @@ void Pacman::LoadContent()
 		_munchie[i]->_position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
 	}
 
+	// Load ghosts
+	Texture2D* _ghostTexture = new Texture2D();
+	_ghostTexture->Load("Textures/GhostBlue.png", true);
 
+	for (int i = 0; i < GHOSTCOUNT; i++)
+	{
+		srand((rand() % Graphics::GetViewportHeight())+ (rand() % Graphics::GetViewportWidth()));
+		_ghost[i]->_texture = _ghostTexture;
+		_ghost[i]->_position = new Vector2((rand() % Graphics::GetViewportWidth()), (rand() % Graphics::GetViewportHeight()));
+		_ghost[i]->_sourceRect = new Rect(0.0f, 0.0f, 20, 20);
+	}
 
 	// Load cherry
 	Texture2D* _cherryTexture = new Texture2D();
@@ -132,14 +153,18 @@ void Pacman::Update(int elapsedTime)
 
 	//Gets the current state of the mouse
 	Input::MouseState* _mouseState = Input::Mouse::GetState();
-
+	for (int i = 0; i < GHOSTCOUNT; i++)
+	{
+		UpdateGhost(_ghost[i], elapsedTime);
+	}
+	CheckGhostCollisions();
 
 	// handles input of the keyboard and runes code accrodingly
 	HandleInput( elapsedTime, _keyboardState, _keyPressed, _mouseState);
 	
 	for (int i = 0; i < MUNCHIECOUNT; i++)
 	{
-		UpdateMunchie(*_munchie[i], elapsedTime);
+		UpdateMunchie(_munchie[i], elapsedTime);
 	}
 }
 
@@ -166,13 +191,21 @@ void Pacman::Draw(int elapsedTime)
 		{
 			for (int i = 0; i < MUNCHIECOUNT; i++)
 			{
-				AnimateMunchie(elapsedTime,i);
+				AnimateMunchie(elapsedTime, i);
 			}
 			for (int i = 0; i < CHERRYCOUNT; i++)
 			{
 				AnimateCherry(elapsedTime, i);
 			}
-			AnimatePacman(elapsedTime);
+			if (!_pacman->_dead)
+			{
+				AnimatePacman(elapsedTime);
+			}
+			//draw ghosts
+			for (int i = 0; i < GHOSTCOUNT; i++)
+			{
+				SpriteBatch::Draw(_ghost[0]->_texture, _ghost[i]->_position, _ghost[i]->_sourceRect);
+			}
 		}
 	}
 	
@@ -256,6 +289,12 @@ void Pacman::AnimateCherry(int elapsedTime,int i)
 	_cherry[i]->_rect->X = _cherry[i]->_rect->Width * _cherry[i]->_frame;
 
 	SpriteBatch::Draw(_cherry[i]->_texture, _cherry[i]->_position, _cherry[i]->_rect);
+}
+
+// deals with cherries animations 
+void Pacman::AnimateGhost(int elapsedTime, int i) 
+{
+
 }
 
 // deals with pacman going of screen
@@ -476,7 +515,60 @@ void Pacman::HandleInput(int elapsedTime, Input::KeyboardState* _keyboardState, 
 };
 
 // Munchie code run ever update
-void Pacman::UpdateMunchie(Enemy _munchie,int elapsedTime)
+void Pacman::UpdateMunchie(Enemy* _munchie,int elapsedTime)
 {
 
+}
+
+void Pacman::UpdateGhost(MovingEnemy* _ghost, int elapsedTime)
+{
+	if (_ghost->_direction == 0) //Moves Right 
+	{
+		_ghost->_position->X += _ghost->_speed * elapsedTime;
+	}
+	else if (_ghost->_direction == 1) //Moves Left 
+	{
+		_ghost->_position->X -= _ghost->_speed * elapsedTime;
+	}
+
+	if (_ghost->_position->X + _ghost->_sourceRect->Width >= Graphics::GetViewportWidth()) //Hits Right edge 
+	{
+		_ghost->_direction = 1; //Change direction 
+	}
+	else if (_ghost->_position->X <= 0) //Hits left edge 
+	{
+		_ghost->_direction = 0; //Change direction 
+	}
+}
+
+void Pacman::CheckGhostCollisions()
+{
+	// Local Variables
+	int i = 0;
+	int bottom1 = _pacman->_position->Y + _pacman->_sourceRect->Height;
+	int bottom2 = 0;
+	int left1 = _pacman->_position->X;
+	int left2 = 0;
+	int right1 = _pacman->_position->X + _pacman->_sourceRect->Width;
+	int right2 = 0;
+	int top1 = _pacman->_position->Y;
+	int top2 = 0;
+
+	for (i = 0; i < GHOSTCOUNT; i++)
+	{
+		// Populate variables with Ghost data
+		bottom2 =
+			_ghost[i]->_position->Y + _ghost[i]->_sourceRect->Height;
+		left2 = _ghost[i]->_position->X;
+		right2 =
+			_ghost[i]->_position->X + _ghost[i]->_sourceRect->Width;
+		top2 = _ghost[i]->_position->Y;
+
+		if ((bottom1 > top2) && (top1 < bottom2) && (right1 > left2)
+			&& (left1 < right2))
+		{
+			_pacman->_dead = true;
+			i = GHOSTCOUNT;
+		}
+	}
 }

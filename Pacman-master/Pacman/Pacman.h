@@ -20,9 +20,11 @@ using namespace S2D;
 
 #define MUNCHIECOUNT 50
 #define CHERRYCOUNT 4
+#define GHOSTCOUNT 4
 
 struct Player 
 {
+	bool _dead;
 	Vector2* _position;
 	Rect* _sourceRect;
 	Texture2D* _texture;
@@ -43,6 +45,16 @@ struct Enemy
 	int _currentFrameTime;
 };
 
+struct MovingEnemy
+{
+	Vector2* _position;
+	Texture2D* _texture;
+	Rect* _sourceRect;
+	int _direction;
+	float _speed;
+};
+
+
 struct Pellet 
 {
 	
@@ -61,13 +73,16 @@ private:
 
 	Player* _pacman;
 
-	bool _movementKeyPreseed;
-
 	Enemy* _munchie[MUNCHIECOUNT];
 
 	Enemy* _cherry[CHERRYCOUNT];
 
+	MovingEnemy* _ghost[GHOSTCOUNT];
+	
 	Pellet* _pellet;
+
+	bool _movementKeyPreseed;
+
 
 	// Position for String
 	Vector2* _stringPosition;
@@ -105,6 +120,8 @@ public:
 	void AnimateMunchie(int elapsedTime,int i);
 
 	void AnimateCherry(int elapsedTime,int i);
+
+	void AnimateGhost(int elapsedTime, int i);
 	
 	void StartMenu();
 
@@ -117,6 +134,11 @@ public:
 	/// <summary> This handles anything that may required the use of a keyboard </summary>
 	void HandleInput(int elapsedTime, Input::KeyboardState* _keyboardState, char* _keyPressed, Input::MouseState* _mouseState);
 
+	/// <summary> This runs every update for Ghost related code </summary>
+	void UpdateGhost(MovingEnemy* _ghost, int elapsedTime);
+
+	void CheckGhostCollisions();
+
 	/// <summary> This runs every update for Munchie related code </summary>
-	void UpdateMunchie(Enemy _munchie, int elapsedTime);
+	void UpdateMunchie(Enemy* _munchie, int elapsedTime);
 };
